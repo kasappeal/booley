@@ -623,7 +623,6 @@ class BooleyTests(unittest.TestCase):
         result = self.parser.parse(code, {u'Connecting_Future': u'1', u'nota_marketing_digital': u''})
         self.assertFalse(result)
 
-    def test_in_operator(self):
         code = '''"apple" in fruits'''
         result = self.parser.parse(code, {u'fruits': [u'apple', u'banana']})
         self.assertTrue(result)
@@ -642,3 +641,29 @@ class BooleyTests(unittest.TestCase):
         code = '''fruits not has "apple"'''
         result = self.parser.parse(code, {u'fruits': [u'apple', u'banana']})
         self.assertFalse(result)
+
+    def test_starts_with(self):
+        code = '''alpha starts with "abc"'''
+        result = self.parser.parse(code, {u'alpha': "abcdefghijklmnopqrstuvwxyz"})
+        self.assertTrue(result)
+
+    def test_not_starts_swith(self):
+        code = '''alpha not starts with "abc"'''
+        result = self.parser.parse(code, {u'alpha': "abcdefghijklmnopqrstuvwxyz"})
+        self.assertFalse(result)
+
+    def test_ends_with(self):
+        code = '''alpha ends with "xyz"'''
+        result = self.parser.parse(code, {u'alpha': "abcdefghijklmnopqrstuvwxyz"})
+        self.assertTrue(result)
+
+    def test_not_ends_with(self):
+        code = '''alpha not ends with "abc"'''
+        result = self.parser.parse(code, {u'alpha': "abcdefghijklmnopqrstuvwxyz"})
+        self.assertTrue(result)
+
+    def test_slice(self):
+        code = '''alpha[2:7] == "cdefg"'''
+        result = self.parser.parse(code, {u'alpha': "abcdefghijklmnopqrstuvwxyz"})
+        self.assertTrue(result)
+

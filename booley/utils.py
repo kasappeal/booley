@@ -9,3 +9,9 @@ def flatten(L):
         else:
             ret.append(i)
     return ret
+
+
+def parse_booley_expression(expression, context):
+    from .parsers import Booley
+    parser = Booley()
+    return parser.parse(expression, context)

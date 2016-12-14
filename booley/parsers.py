@@ -8,6 +8,7 @@ from booley.utils import flatten
 class Booley(object):
 
     def __init__(self, context={}):
+        self.variables = list()
         self.context = context
         self.parser = self._init_parser()
 
@@ -36,6 +37,14 @@ class Booley(object):
 
     def _get_variable_value(self, string, location, tokens):
         token = tokens[0]
+        if token.endswith("]"):
+            token_parts = token[:-1].split("[")
+            token = token_parts[0]
+            split = list(map(lambda x: int(x), token_parts[1].split(":")))
+        else:
+            split = list()
+        if token not in self.variables:
+            self.variables.append(token)
         if self.context is None:
             return '0'
         else:
@@ -44,10 +53,14 @@ class Booley(object):
                 return ""
             elif type(value) == list:
                 value = '|'.join(value)
-            return value
+            if len(split) == 2:
+                return value[split[0]:split[1]]
+            else:
+                return value
 
     def get_variable_parser(self):
-        return Word(alphas, alphanums + '_').setParseAction(self._get_variable_value)
+        slice = Combine(Literal('[') + Word(nums) + Literal(':') + Word(nums) + Literal(']'))
+        return Combine(Word(alphas, alphanums + '_') + Optional(slice)).setParseAction(self._get_variable_value)
 
     def get_equality_comparison_operator_parser(self):
         return Literal('==') | Literal('!=') | Literal('=') | CaselessLiteral('HAS ') | CaselessLiteral('IN ')
@@ -55,12 +68,22 @@ class Booley(object):
     def get_including_operator_parser(self):
         return CaselessLiteral('IN ') | CaselessLiteral('NOT IN ') | CaselessLiteral('HAS ') | CaselessLiteral('NOT HAS ')
 
+    def get_starts_with_operator_parser(self):
+        return CaselessLiteral('STARTS WITH ') | CaselessLiteral('NOT STARTS WITH ')
+
+    def get_ends_with_operator_parser(self):
+        return CaselessLiteral('ENDS WITH ') | CaselessLiteral('NOT ENDS WITH ')
+
+    def get_is_null_operator_parser(self):
+        return CaselessLiteral('IS ') | CaselessLiteral('IS NOT ')
+
     def get_size_comparison_operator_parser(self):
         return Literal('<=') | Literal('>=') | Literal('<') | Literal('>')
 
     def get_comparison_operator_parser(self):
         return self.get_equality_comparison_operator_parser() | self.get_size_comparison_operator_parser() | \
-               self.get_including_operator_parser()
+               self.get_including_operator_parser() | self.get_starts_with_operator_parser() | \
+               self.get_ends_with_operator_parser() | self.get_is_null_operator_parser()
 
     def get_numeric_value_parser(self):
         return self.get_variable_parser() | self.get_real_parser() | self.get_integer_parser()
@@ -100,6 +123,26 @@ class Booley(object):
             return operator_a in operator_b
         elif operation == 'NOT IN ':
             return operator_a not in operator_b
+        elif operation == 'STARTS WITH ':
+            return operator_a.startswith(operator_b)
+        elif operation == 'NOT STARTS WITH ':
+            return not operator_a.startswith(operator_b)
+        elif operation == 'ENDS WITH ':
+            return operator_a.endswith(operator_b)
+        elif operation == 'NOT ENDS WITH ':
+            return not operator_a.endswith(operator_b)
+        elif operation == 'IS ':
+            if operator_b not in ('NULL', 'null'):
+                raise BooleySyntaxError(u"Syntax error near '{1}' in '{0}': {2}. {2} must be 'NULL'".format(
+                    operator_a, operation, operator_b
+                ))
+            return operator_a is None
+        elif operation == 'IS NOT ':
+            if operator_b not in ('NULL', 'null'):
+                raise BooleySyntaxError(u"Syntax error near '{1}' in '{0}': {2}. {2} must be 'NULL'".format(
+                    operator_a, operation, operator_b
+                ))
+            return operator_a is not None
         else:
             raise UnknownOperation(u"Unknown operation '{0}'".format(operation))
 
