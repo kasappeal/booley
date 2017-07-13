@@ -2,7 +2,7 @@
 import unittest
 from pyparsing import ParseException
 from booley.exceptions import BooleySyntaxError
-from parsers import Booley
+from booley.parsers import Booley
 
 
 class BooleyTests(unittest.TestCase):
@@ -667,3 +667,25 @@ class BooleyTests(unittest.TestCase):
         result = self.parser.parse(code, {u'alpha': "abcdefghijklmnopqrstuvwxyz"})
         self.assertTrue(result)
 
+    def test_dates(self):
+        code = '''invoice_date == invoice_date_filter'''
+        result = self.parser.parse(code, {u'invoice_date': "2012-08-05", u'invoice_date_filter': "2012-08-05"})
+        self.assertTrue(result)
+
+    def test_length_operator_with_string(self):
+        code = '''"123456789" LENGTH IS 9'''
+        result = self.parser.parse(code, {})
+        self.assertTrue(result)
+
+        code = '''"123456789" LENGTH IS NOT 19'''
+        result = self.parser.parse(code, {})
+        self.assertTrue(result)
+
+    def test_length_operator_with_variable(self):
+        code = '''name LENGTH IS 6'''
+        result = self.parser.parse(code, {u'name': "Daniel"})
+        self.assertTrue(result)
+
+        code = '''name LENGTH IS NOT 16'''
+        result = self.parser.parse(code, {u'name': "Daniel"})
+        self.assertTrue(result)

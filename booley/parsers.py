@@ -90,10 +90,13 @@ class Booley(object):
 
     def _compare_num(self, string, location, tokens):
         token = flatten(tokens.asList())
-        operator_a = float(token[0])
-        operation = token[1]
-        operator_b = float(token[2])
-        return self._compare(operator_a, operation, operator_b)
+        try:
+            operator_a = float(token[0])
+            operation = token[1]
+            operator_b = float(token[2])
+            return self._compare(operator_a, operation, operator_b)
+        except ValueError as e:
+            return self._compare_str(string, location, tokens)
 
     def _compare_str(self, string, location, tokens):
         token = flatten(tokens.asList())
@@ -101,6 +104,15 @@ class Booley(object):
         operation = token[1]
         operator_b = token[2]
         return self._compare(operator_a, operation, operator_b)
+
+    def _compare_length(self, string, location, tokens):
+        token = flatten(tokens.asList())
+        operator_a = token[0]
+        operation = token[1]
+        operator_b = token[2]
+        if operation == "LENGTH IS ":
+            return len(operator_a) == operator_b
+        return len(operator_a) != operator_b
 
     def _compare(self, operator_a, operation, operator_b):
         if operation == '=' or operation == '==':
@@ -159,6 +171,12 @@ class Booley(object):
         comparison_operator = self.get_comparison_operator_parser()
         return Group(string_value + comparison_operator + string_value).setParseAction(self._compare_str)
 
+    def get_length_comparison_parser(self):
+        numeric_value = self.get_numeric_value_parser()
+        string_value = self.get_string_value_parser()
+        comparison_operator = CaselessLiteral('LENGTH IS NOT ') | CaselessLiteral('LENGTH IS ')
+        return Group(string_value + comparison_operator + numeric_value).setParseAction(self._compare_length)
+
     def _compare_boolean(self, string, location, tokens):
         token = flatten(tokens.asList())
         operator_a = token[0]
@@ -204,6 +222,7 @@ class Booley(object):
         equality_comparison_operator = self.get_equality_comparison_operator_parser()
         numeric_comparison = self.get_numeric_comparison_parser()
         string_comparison = self.get_string_comparison_parser()
+        length_comparison = self.get_length_comparison_parser()
 
         boolean_operator = Forward()
         boolean_binary_operation = Forward()
@@ -214,7 +233,7 @@ class Booley(object):
 
         boolean_operator_not = Group(CaselessLiteral("NOT ") + boolean_operator).setParseAction(self._boolean_not)
 
-        boolean_operator << Group(boolean | boolean_operator_not | numeric_comparison | string_comparison | nested_boolean_operator)
+        boolean_operator << Group(boolean | boolean_operator_not | length_comparison | numeric_comparison | string_comparison | nested_boolean_operator)
 
         boolean_binary_symbols = CaselessLiteral("AND") | CaselessLiteral("OR")
 
